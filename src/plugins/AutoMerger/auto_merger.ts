@@ -77,14 +77,16 @@ export class AutoMerger extends OpsBotPlugin {
       // Generate commit message
       const commitMsg = await this.createCommitMessage(pr);
 
+      const mergeMethod = this.isForwardMergePr(pr) ? "merge" : "squash";
+
       // Merge PR
-      this.logger.info({ pr }, "merging PR");
+      this.logger.info({ pr, mergeMethod }, "merging PR");
       const commitTitle = this.sanitizePrTitle(pr.title) + ` (#${pr.number})`;
       await context.octokit.pulls.merge({
         owner: repo.owner.login,
         repo: repo.name,
         pull_number: pr.number,
-        merge_method: "squash",
+        merge_method: mergeMethod,
         commit_title: commitTitle,
         commit_message: commitMsg,
       });
@@ -250,5 +252,12 @@ export class AutoMerger extends OpsBotPlugin {
    */
   sanitizePrTitle(rawTitle): string {
     return rawTitle.replace(/\[[\s\S]*?\]/g, "").trim();
+  }
+
+  isForwardMergePr(pr: PullsGetResponseData): Boolean {
+    return (
+      pr.title.toLowerCase().includes("forward-merge") &&
+      pr.user!.login === "GPUtester"
+    );
   }
 }
